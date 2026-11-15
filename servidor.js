@@ -14,6 +14,26 @@ function atual() {
 }
 function lerStatus(id) { try { return JSON.parse(fs.readFileSync(path.join(FILA, id, 'status.json'), 'utf8')); } catch { return { estado: 'desconhecido', atualizado: '' }; } }
 
+// Vigia: processo que avisa de pedido novo. Está vivo se o batimento em vigia/estado.json tem menos de 6 s.
+const VIGIA = path.join(__dirname, 'vigia');
+function vigiaViva() {
+  try { const v = JSON.parse(fs.readFileSync(path.join(VIGIA, 'estado.json'), 'utf8')); return Date.now() - v.em < 6000 ? v : null; } catch { return null; }
+}
+function ligarVigia() {
+  if (vigiaViva()) return true;
+  fs.mkdirSync(VIGIA, { recursive: true });
+  const log = fs.openSync(path.join(VIGIA, 'vigia.log'), 'a');
+  require('child_process').spawn(process.execPath, [path.join(__dirname, 'ferramentas', 'vigiar.js')], { detached: true, stdio: ['ignore', log, log], windowsHide: true }).unref();
+  return true;
+}
+function listarFila() {
+  if (!fs.existsSync(FILA)) return [];
+  return fs.readdirSync(FILA).filter((id) => ID_OK.test(id)).map((id) => {
+    let p = {}; try { p = JSON.parse(fs.readFileSync(path.join(FILA, id, 'pedido.json'), 'utf8')); } catch { /* pedido ainda sendo gravado */ }
+    return { id, marca: p.marca || '', produto: p.produto || '', ...lerStatus(id) };
+  }).sort((a, b) => b.atualizado.localeCompare(a.atualizado));
+}
+
 function receber(req, res) {
   const partes = []; let tam = 0;
   req.on('data', (c) => { tam += c.length; if (tam > LIMITE) { json(res, 413, { erro: 'arquivo grande demais' }); req.destroy(); } else partes.push(c); });
@@ -51,6 +71,10 @@ http.createServer((req, res) => {
   const st = /^\/api\/pedidos\/([a-z0-9-]+)$/.exec(rota);
   if (req.method === 'GET' && st && ID_OK.test(st[1])) return json(res, 200, lerStatus(st[1]));
   if (req.method === 'GET' && rota === '/api/atual') return json(res, 200, { id: atual() });
+  if (rota === '/api/vigia' && req.method === 'GET') return json(res, 200, { ligado: !!vigiaViva() });
+  if (rota === '/api/vigia' && req.method === 'POST') return json(res, 200, { ligado: ligarVigia() });
+  if (rota === '/api/vigia' && req.method === 'DELETE') { const v = vigiaViva(); if (v) try { process.kill(v.pid); } catch { /* já encerrou */ } return json(res, 200, { ligado: false }); }
+  if (req.method === 'GET' && rota === '/api/fila') return json(res, 200, listarFila());
   // Imagens das opções, PDFs e artes do simulador vêm do resultado atual.
   if (/^\/(opcao-[a-c]-(tampa|tarja)\.webp|opcao-[a-c]-impressao\.pdf|simulador\/artes\/.*)$/.test(rota)) return arquivo(res, path.join(RES, atual()), rota.replace(/^\/simulador\//, '').replace(/^\//, ''), SITE);
   arquivo(res, SITE, rota.endsWith('/') ? rota + 'index.html' : rota);

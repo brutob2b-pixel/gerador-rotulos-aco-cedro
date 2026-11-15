@@ -1,7 +1,10 @@
 // Avisa (uma linha por pedido) quando chega pedido novo em fila/. Usado pelo Claude para saber na hora.
 const fs = require('fs'), path = require('path');
-const FILA = path.join(__dirname, '..', 'fila'), vistos = new Set();
+const FILA = path.join(__dirname, '..', 'fila'), VIGIA = path.join(__dirname, '..', 'vigia'), vistos = new Set();
+fs.mkdirSync(VIGIA, { recursive: true });
 setInterval(() => {
+  // batimento: a página de controle sabe que o vigia está vivo quando este arquivo é recente
+  fs.writeFileSync(path.join(VIGIA, 'estado.json'), JSON.stringify({ pid: process.pid, em: Date.now() }));
   if (!fs.existsSync(FILA)) return;
   for (const id of fs.readdirSync(FILA)) {
     if (vistos.has(id)) continue;

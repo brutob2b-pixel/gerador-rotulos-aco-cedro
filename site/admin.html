@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Controle · Gerador Aço &amp; Cedro</title>
+<style>
+  @font-face { font-family:"Cinzel"; font-weight:400 700; font-display:swap; src:url("fontes/Cinzel-Regular.ttf") format("truetype"); }
+  :root { color-scheme:dark; --fundo:#0D0D0D; --painel:#17140F; --linha:#332C20; --texto:#FBF4E8; --suave:#B5AA96; --ouro:#DFB76C; --ok:#6FCF97; --aviso:#E8946F; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--fundo); color:var(--texto); font:16px/1.5 "Segoe UI", system-ui, sans-serif; padding:max(16px,5vw); }
+  main { max-width:760px; margin:0 auto; display:grid; gap:20px; }
+  h1 { font:600 clamp(22px,5vw,30px) "Cinzel", Georgia, serif; margin:0; letter-spacing:.04em; }
+  .cartao { background:var(--painel); border:1px solid var(--linha); border-radius:16px; padding:20px; display:grid; gap:14px; }
+  .estado { display:flex; align-items:center; gap:10px; font-weight:600; }
+  .luz { width:12px; height:12px; border-radius:50%; background:var(--aviso); flex:none; }
+  .ligado .luz { background:var(--ok); box-shadow:0 0 10px var(--ok); }
+  button { min-height:48px; padding:0 24px; border-radius:999px; border:1px solid var(--ouro); background:var(--ouro); color:#1a1405; font:700 16px inherit; cursor:pointer; }
+  button.sec { background:transparent; color:var(--ouro); }
+  :focus-visible { outline:3px solid #fff; outline-offset:3px; }
+  .nota { color:var(--suave); font-size:14px; margin:0; }
+  ul { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+  li { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; border-top:1px solid var(--linha); padding-top:8px; }
+  code { color:var(--ouro); word-break:break-all; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Controle do gerador</h1>
+  <section class="cartao" aria-labelledby="t1">
+    <h2 id="t1" style="margin:0;font-size:18px">Vigia de pedidos</h2>
+    <div class="estado" id="estado" role="status" aria-live="polite"><span class="luz" aria-hidden="true"></span><span id="txt">Verificando…</span></div>
+    <div><button id="botao" type="button">Ligar vigia</button></div>
+    <p class="nota">O vigia anota cada pedido novo em <code>vigia/vigia.log</code>. Para o Claude ser avisado, o monitor dele precisa estar ligado na sessão.</p>
+  </section>
+  <section class="cartao" aria-labelledby="t2">
+    <h2 id="t2" style="margin:0;font-size:18px">Pedidos</h2>
+    <ul id="fila"><li>Nenhum pedido ainda.</li></ul>
+  </section>
+</main>
+<script>
+  const $ = (s) => document.querySelector(s);
+  const ROTULO = { na_fila: 'na fila', gerando: 'gerando', pronto: 'pronto', erro: 'erro' };
+  let ligado = false;
+  async function atualizar() {
+    try {
+      ligado = (await (await fetch('/api/vigia')).json()).ligado;
+      const fila = await (await fetch('/api/fila')).json();
+      $('#estado').classList.toggle('ligado', ligado);
+      $('#txt').textContent = ligado ? 'Vigia ligado' : 'Vigia desligado';
+      $('#botao').textContent = ligado ? 'Desligar vigia' : 'Ligar vigia';
+      $('#botao').className = ligado ? 'sec' : '';
+      const ul = $('#fila'); ul.textContent = '';
+      if (!fila.length) { const li = document.createElement('li'); li.textContent = 'Nenhum pedido ainda.'; ul.append(li); }
+      for (const p of fila) {
+        const li = document.createElement('li'), a = document.createElement('span'), b = document.createElement('span');
+        a.textContent = `${p.marca || p.id} · ${p.produto}`; b.textContent = ROTULO[p.estado] || p.estado;
+        li.append(a, b); ul.append(li);
+      }
+    } catch { $('#txt').textContent = 'Sem resposta do servidor'; }
+  }
+  $('#botao').addEventListener('click', async () => {
+    $('#botao').disabled = true;
+    await fetch('/api/vigia', { method: ligado ? 'DELETE' : 'POST' });
+    setTimeout(async () => { await atualizar(); $('#botao').disabled = false; }, 2500);
+  });
+  atualizar(); setInterval(atualizar, 4000);
+</script>
+</body>
+</html>

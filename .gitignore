@@ -3,3 +3,5 @@ resultados/
 node_modules/
 .env
 .claude/
+vigia/
+vigia-servidor.log
