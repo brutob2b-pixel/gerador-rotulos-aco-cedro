@@ -73,7 +73,7 @@ http.createServer((req, res) => {
   if (req.method === 'GET' && rota === '/api/atual') return json(res, 200, { id: atual() });
   if (rota === '/api/vigia' && req.method === 'GET') return json(res, 200, { ligado: !!vigiaViva() });
   if (rota === '/api/vigia' && req.method === 'POST') return json(res, 200, { ligado: ligarVigia() });
-  if (rota === '/api/vigia' && req.method === 'DELETE') { const v = vigiaViva(); if (v) try { process.kill(v.pid); } catch { /* já encerrou */ } return json(res, 200, { ligado: false }); }
+  if (rota === '/api/vigia' && req.method === 'DELETE') { const v = vigiaViva(); if (v) try { process.kill(v.pid); fs.unlinkSync(path.join(VIGIA, 'estado.json')); } catch { /* já encerrou */ } return json(res, 200, { ligado: false }); }
   if (req.method === 'GET' && rota === '/api/fila') return json(res, 200, listarFila());
   // Imagens das opções, PDFs e artes do simulador vêm do resultado atual.
   if (/^\/(opcao-[a-c]-(tampa|tarja)\.webp|opcao-[a-c]-impressao\.pdf|simulador\/artes\/.*)$/.test(rota)) return arquivo(res, path.join(RES, atual()), rota.replace(/^\/simulador\//, '').replace(/^\//, ''), SITE);
