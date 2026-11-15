@@ -254,6 +254,12 @@
     .opcao .tampa { width:min(62vw,240px); } .opcao .corpo { width:100%; }
   }
   @media (max-width:380px) { .arquivos { grid-template-columns:1fr; } .soltar { aspect-ratio:auto; min-height:140px; } .topo-in { gap:8px; } }
+
+  /* Vigia: ficha fixa no canto; verde quando o vigia de pedidos está ligado */
+  .vigia { position:fixed; right:max(16px,env(safe-area-inset-right)); bottom:max(16px,env(safe-area-inset-bottom)); z-index:60; display:inline-flex; align-items:center; gap:10px; min-height:44px; padding:0 16px; border-radius:999px; border:1px solid var(--linha); background:var(--painel); color:var(--texto); font:600 14px var(--sans); cursor:pointer; }
+  .vigia .luz { width:10px; height:10px; border-radius:50%; background:var(--erro); }
+  .vigia.ligado { border-color:var(--ouro); }
+  .vigia.ligado .luz { background:#6FCF97; box-shadow:0 0 10px #6FCF97; }
 </style>
 </head>
 <body>
@@ -614,6 +620,16 @@
   });
   voltar.addEventListener('click', fecha);
   document.addEventListener('keydown', teclaEsc);
+</script>
+<button class="vigia" id="vigia" type="button" aria-live="polite"><span class="luz" aria-hidden="true"></span><span id="vigia-txt">Vigia desligado</span></button>
+<script>
+  /* Botão do vigia: liga ou desliga o aviso de pedidos novos (o servidor guarda o estado) */
+  (() => {
+    const b = document.getElementById('vigia'), t = document.getElementById('vigia-txt'); let ligado = false;
+    const ver = async () => { try { ligado = (await (await fetch('/api/vigia')).json()).ligado; b.classList.toggle('ligado', ligado); t.textContent = ligado ? 'Vigia ligado' : 'Vigia desligado'; } catch { t.textContent = 'Vigia sem resposta'; } };
+    b.addEventListener('click', async () => { b.disabled = true; try { await fetch('/api/vigia', { method: ligado ? 'DELETE' : 'POST' }); } catch { /* o próximo ver() mostra o estado real */ } setTimeout(async () => { await ver(); b.disabled = false; }, 2500); });
+    ver(); setInterval(ver, 5000);
+  })();
 </script>
 </body>
 </html>
