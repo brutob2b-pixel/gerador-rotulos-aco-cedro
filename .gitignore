@@ -1,0 +1,5 @@
+fila/
+resultados/
+node_modules/
+.env
+.claude/

@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gerador de rótulos · Aço &amp; Cedro</title>
+<meta name="description" content="Envie sua referência e seu logotipo. Receba 3 opções de tarja e tampa, escolha uma e veja o pote girando em 3D.">
+<style>
+  @font-face { font-family:"Cinzel"; font-weight:900; font-display:swap; src:url("fontes/Cinzel-Black.ttf") format("truetype"); }
+  @font-face { font-family:"Cinzel"; font-weight:400 700; font-display:swap; src:url("fontes/Cinzel-Regular.ttf") format("truetype"); }
+  /* ===== Tokens ===== */
+  :root {
+    --fundo:#0D0D0D; --fundo-2:#120f0a; --painel:#17140F; --painel-2:#1f1a12; --linha:#332C20;
+    --texto:#FBF4E8; --suave:#B5AA96; --ouro:#DFB76C; --ouro-claro:#F0D9A6; --ouro-escuro:#785030;
+    --verde:#2f8f83; --verde-texto:#5cc2b3; --erro:#f08a78; --foco:#ffffff; --campo:#6b717d;
+    --serif:"Cinzel", Georgia, "Times New Roman", serif; --sans:"Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    --metal:linear-gradient(135deg,#8a6b24 0%,#f1d68f 28%,#d9b45a 52%,#a37f2c 76%,#f1d68f 100%);
+    --ease:cubic-bezier(.16,1,.3,1); --rapido:180ms; --normal:360ms;
+    --gutter:max(16px,5vw); --topo:64px;
+  }
+  * { box-sizing:border-box; }
+  html { scroll-padding-top:calc(var(--topo) + 16px); }
+  @media (prefers-reduced-motion:no-preference) { html { scroll-behavior:smooth; } }
+  body {
+    margin:0; background:var(--fundo); color:var(--texto); font:16px/1.6 var(--sans);
+    padding-top:calc(var(--topo) + env(safe-area-inset-top, 0px));
+  }
+  body::before { /* grão sutil: dá textura de metal escovado ao fundo */
+    content:""; position:fixed; inset:0; pointer-events:none; opacity:.05; z-index:0;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+  main, footer { position:relative; z-index:1; }
+  img { max-width:100%; display:block; }
+  h1, h2, h3 { font-family:var(--serif); font-weight:600; line-height:1.12; margin:0; letter-spacing:-.01em; }
+  p { margin:0; }
+  a { color:var(--ouro-claro); }
+  :focus-visible { outline:3px solid var(--foco); outline-offset:3px; border-radius:6px; }
+  .ouro { background:var(--metal); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .so-leitor { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .so-leitor.pular:focus { position:fixed; top:calc(8px + env(safe-area-inset-top, 0px)); left:8px; width:auto; height:auto; clip:auto; overflow:visible; white-space:normal; z-index:100; background:var(--ouro); color:#1a1405; padding:12px 18px; border-radius:8px; font-weight:700; }
+  main:focus { outline:none; }
+  .obrig { color:var(--ouro-claro); margin-left:4px; }
+  @media (forced-colors:active) { .ouro { background:none; color:CanvasText; } }
+  .olho { font:600 12px/1 var(--sans); letter-spacing:.22em; text-transform:uppercase; color:var(--ouro); }
+
+  /* ===== Botões ===== */
+  .btn {
+    display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:48px; padding:0 26px;
+    font:700 16px var(--sans); border-radius:999px; border:1px solid var(--ouro); cursor:pointer; text-decoration:none;
+    transition:transform var(--rapido) var(--ease), box-shadow var(--normal) var(--ease), background var(--rapido);
+  }
+  .btn-ouro { background:var(--metal); color:#1a1405; box-shadow:0 8px 28px -10px rgba(217,180,90,.6), inset 0 1px 0 rgba(255,255,255,.45); }
+  .btn-ouro:hover:not([aria-disabled="true"]) { transform:translateY(-2px); box-shadow:0 14px 34px -10px rgba(217,180,90,.8), inset 0 1px 0 rgba(255,255,255,.45); }
+  .btn-ouro:active:not([aria-disabled="true"]) { transform:translateY(0) scale(.98); }
+  .btn-linha { background:transparent; color:var(--ouro-claro); }
+  .btn-linha:hover { background:rgba(217,180,90,.12); }
+  .btn[aria-disabled="true"] { opacity:.5; cursor:not-allowed; filter:grayscale(.4); }
+  .btn[aria-busy="true"] { cursor:progress; }
+
+  /* ===== Stepper fixo ===== */
+  .topo {
+    position:fixed; inset:0 0 auto 0; z-index:20; padding:env(safe-area-inset-top, 0px) var(--gutter) 0;
+    background:rgba(10,11,13,.82); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+    border-bottom:1px solid var(--linha);
+  }
+  .topo-in { height:var(--topo); max-width:1200px; margin:0 auto; display:flex; align-items:center; gap:clamp(12px,3vw,32px); }
+  .marca { font:600 17px var(--serif); color:var(--texto); text-decoration:none; white-space:nowrap; min-height:44px; display:inline-flex; align-items:center; }
+  .marca b { color:var(--ouro); font-weight:600; }
+  .nav-passos { margin-left:auto; }
+  .etapa-atual { display:none; font-size:13px; font-weight:700; color:var(--suave); white-space:nowrap; }
+  .passos { list-style:none; margin:0; padding:0; display:flex; gap:4px; position:relative; }
+  .passos a {
+    display:flex; align-items:center; gap:10px; min-height:44px; min-width:44px; padding:0 12px; border-radius:999px;
+    color:var(--suave); text-decoration:none; font-size:14px; font-weight:600; transition:color var(--rapido), background var(--rapido);
+  }
+  .passos a:hover { color:var(--texto); background:rgba(255,255,255,.05); }
+  .passos .n {
+    width:28px; height:28px; border-radius:50%; display:grid; place-items:center; font:700 13px var(--sans);
+    border:1px solid var(--linha); background:var(--painel); flex:none; transition:all var(--normal) var(--ease);
+  }
+  .passos a[aria-current="step"] { color:var(--texto); }
+  .passos a[aria-current="step"] .n { background:var(--metal); color:#1a1405; border-color:var(--ouro); box-shadow:0 0 0 4px rgba(217,180,90,.18); }
+  .passos a.feito .n { background:var(--verde); border-color:var(--verde); color:#000; position:relative; }
+  .passos a.feito .n::after { content:"✓"; position:absolute; top:-7px; right:-7px; width:16px; height:16px; border-radius:50%; background:var(--texto); color:#000; font-size:11px; display:grid; place-items:center; }
+  .barra { position:absolute; left:0; right:0; bottom:-1px; height:2px; background:transparent; }
+  .barra i { display:block; height:100%; width:100%; background:var(--metal); transform-origin:left; transform:scaleX(0); transition:transform 500ms var(--ease); }
+
+  /* ===== Seções ===== */
+  section { padding-block:clamp(72px,11vw,150px); padding-inline:var(--gutter); }
+  .miolo { max-width:1120px; margin:0 auto; }
+  .cabeca { display:grid; gap:14px; max-width:60ch; margin-bottom:clamp(32px,5vw,64px); }
+  .cabeca h2 { font-size:clamp(30px,4.6vw,54px); }
+  .cabeca p { color:var(--suave); font-size:clamp(16px,1.4vw,19px); }
+  .num-grande { font:400 clamp(80px,14vw,180px)/.8 var(--serif); background:var(--metal); -webkit-background-clip:text; background-clip:text; color:transparent; opacity:.22; }
+
+  /* ===== Hero ===== */
+  #inicio { min-height:calc(100svh - var(--topo)); display:grid; align-items:center; padding-block:clamp(40px,8vw,100px); overflow:hidden;
+    background:radial-gradient(60% 50% at 75% 40%, rgba(217,180,90,.13), transparent 70%), radial-gradient(40% 40% at 10% 90%, rgba(47,143,131,.12), transparent 70%); }
+  .hero { display:grid; gap:clamp(40px,6vw,80px); grid-template-columns:1.05fr 1fr; align-items:center; max-width:1240px; margin:0 auto; width:100%; }
+  .hero h1 { font-size:clamp(36px,5.2vw,78px); margin:18px 0 22px; }
+  .hero .sub { color:var(--suave); font-size:clamp(17px,1.6vw,21px); max-width:46ch; }
+  .hero .acoes { display:flex; flex-wrap:wrap; align-items:center; gap:14px 28px; margin-top:34px; }
+  .hero .acoes a.txt { min-height:44px; display:inline-flex; align-items:center; font-weight:600; }
+  .fatos { list-style:none; margin:44px 0 0; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,130px),1fr)); gap:18px 24px; border-top:1px solid var(--linha); padding-top:22px; }
+  .fatos strong { display:block; font:600 22px var(--serif); color:var(--ouro-claro); }
+  .fatos span { font-size:13px; color:var(--suave); }
+
+  /* palco: tampa e tarja "nascendo" */
+  .palco { position:relative; display:grid; justify-items:center; gap:0; padding:12px 0 8px; }
+  .tampa-hero { position:relative; width:min(78vw,440px); aspect-ratio:1; }
+  .tampa-hero img { width:100%; height:100%; border-radius:50%; filter:drop-shadow(0 30px 40px rgba(0,0,0,.7)); }
+  .tampa-hero svg { position:absolute; inset:-3%; width:106%; height:106%; transform:rotate(-90deg); overflow:visible; }
+  .tampa-hero circle { fill:none; stroke:url(#ouroG); stroke-width:1.6; stroke-dasharray:1; stroke-dashoffset:0; }
+  .tarja-hero { position:relative; width:min(100%,640px); margin-top:-4%; aspect-ratio:3200/286; box-shadow:0 18px 40px -12px rgba(0,0,0,.8), 0 0 0 1px rgba(217,180,90,.35); border-radius:3px; overflow:hidden; }
+  .tarja-hero img { width:100%; height:100%; object-fit:cover; }
+  .tarja-hero::after { content:""; position:absolute; inset:0; background:linear-gradient(100deg,transparent 35%,rgba(255,236,180,.5) 50%,transparent 65%); transform:translateX(-120%); }
+  .legenda-palco { margin-top:18px; font-size:13px; color:var(--suave); text-align:center; }
+
+  /* nascimento: só roda se o movimento é permitido */
+  @media (prefers-reduced-motion:no-preference) {
+    .tampa-hero img { animation:nasce-tampa 1.1s var(--ease) .15s both; }
+    .tampa-hero circle { animation:risca 1.6s var(--ease) both; }
+    .tarja-hero { animation:nasce-tarja 1.2s var(--ease) .7s both; }
+    .tarja-hero::after { animation:brilho 1.4s ease-in-out 1.7s 1 both; }
+    .hero-texto > * { animation:sobe .8s var(--ease) both; }
+    .hero-texto > *:nth-child(2){animation-delay:.08s} .hero-texto > *:nth-child(3){animation-delay:.16s}
+    .hero-texto > *:nth-child(4){animation-delay:.24s} .hero-texto > *:nth-child(5){animation-delay:.32s}
+    .js .rev { opacity:0; transform:translateY(24px); transition:opacity .7s var(--ease), transform .7s var(--ease); }
+    .js .rev.vis { opacity:1; transform:none; }
+  }
+  @keyframes nasce-tampa { from{opacity:0; transform:scale(.86) rotate(-12deg); filter:blur(8px) drop-shadow(0 30px 40px rgba(0,0,0,.7));} to{opacity:1; transform:none;} }
+  @keyframes risca { from{stroke-dashoffset:1;} to{stroke-dashoffset:0;} }
+  @keyframes nasce-tarja { from{clip-path:inset(0 100% 0 0); opacity:.4;} to{clip-path:inset(0 0 0 0); opacity:1;} }
+  @keyframes brilho { from{transform:translateX(-120%);} to{transform:translateX(120%);} }
+  @keyframes sobe { from{opacity:0; transform:translateY(18px);} to{opacity:1; transform:none;} }
+
+  /* ===== Etapa 1: formulário ===== */
+  #etapa-1 { background:linear-gradient(180deg,var(--fundo),var(--fundo-2)); }
+  .duas { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.1fr); gap:clamp(32px,5vw,72px); align-items:start; }
+  form { display:grid; gap:22px; }
+  .campo { display:grid; gap:8px; }
+  .campo > label, .campo > .rot { font-weight:700; font-size:15px; }
+  .dica { font-size:13px; color:var(--suave); font-weight:400; }
+  input[type=text], select {
+    font:inherit; color:var(--texto); background:var(--painel); border:1px solid var(--campo); border-radius:12px;
+    min-height:48px; padding:0 14px; width:100%; transition:border-color var(--rapido), box-shadow var(--rapido);
+  }
+  input[type=text]:hover, select:hover { border-color:#9aa0ac; }
+  input[type=text]:focus-visible, select:focus-visible { border-color:var(--ouro); box-shadow:0 0 0 3px rgba(217,180,90,.25); }
+  input[aria-invalid="true"], .soltar.invalido { border-color:var(--erro); }
+  .erro-campo { color:var(--erro); font-size:13px; min-height:0; font-weight:600; }
+  .arquivos { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .soltar { position:relative; display:grid; place-items:center; text-align:center; gap:6px; aspect-ratio:1; min-height:150px; border:1.5px dashed var(--campo); border-radius:16px; background:var(--painel); padding:12px; cursor:pointer; overflow:hidden; transition:border-color var(--rapido), background var(--rapido); }
+  .soltar:hover { border-color:var(--ouro); background:var(--painel-2); }
+  .soltar:focus-within { border-color:var(--ouro); box-shadow:0 0 0 3px rgba(217,180,90,.25); }
+  .soltar input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
+  .soltar .txt { font-weight:700; font-size:14px; pointer-events:none; }
+  .soltar .txt small { display:block; font-weight:400; color:var(--suave); font-size:12px; margin-top:2px; }
+  .soltar img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; background:#0d0e11; padding:8px; }
+  .soltar.logo img { background:repeating-conic-gradient(#15171b 0 25%,#1c1f24 0 50%) 0 0/16px 16px; } /* xadrez: mostra transparência do logo */
+  .soltar img[hidden] { display:none; }
+  .soltar .trocar { position:absolute; left:8px; right:8px; bottom:8px; background:rgba(10,11,13,.85); border:1px solid var(--linha); border-radius:8px; font-size:12px; font-weight:700; padding:6px; pointer-events:none; }
+  .estado { min-height:1.6em; font-weight:700; }
+  .estado.erro { color:var(--erro); } .estado.ok { color:var(--verde-texto); }
+  .lado-info { position:sticky; top:calc(var(--topo) + 24px); display:grid; gap:20px; padding:clamp(20px,3vw,32px); background:linear-gradient(160deg,var(--painel-2),var(--painel)); border:1px solid var(--linha); border-radius:20px; }
+  .lado-info h3 { font-size:22px; color:var(--ouro-claro); }
+  .lado-info ol { margin:0; padding:0; list-style:none; display:grid; gap:14px; counter-reset:c; }
+  .lado-info li { counter-increment:c; display:grid; grid-template-columns:32px 1fr; gap:12px; color:var(--suave); font-size:15px; }
+  .lado-info li::before { content:counter(c); width:32px; height:32px; border-radius:50%; border:1px solid var(--ouro-escuro); color:var(--ouro); display:grid; place-items:center; font:700 14px var(--serif); }
+  .lado-info li b { color:var(--texto); display:block; }
+
+  /* ===== Etapa 2: opções ===== */
+  #etapa-2 { background:var(--fundo-2); position:relative; }
+  .selo-demo { display:inline-flex; align-items:center; gap:8px; width:fit-content; font-size:13px; font-weight:700; color:var(--verde-texto); border:1px solid rgba(47,143,131,.5); background:rgba(47,143,131,.1); border-radius:999px; padding:6px 14px; }
+  fieldset { border:0; margin:0; padding:0; min-width:0; }
+  .opcoes { display:grid; gap:clamp(20px,3vw,36px); }
+  .opcao { position:relative; display:grid; grid-template-columns:clamp(150px,22vw,250px) minmax(0,1fr); align-items:center; gap:clamp(18px,3vw,44px); padding:clamp(18px,3vw,34px); border-radius:22px; cursor:pointer;
+    background:linear-gradient(160deg,var(--painel-2),var(--painel)); border:1px solid var(--linha); transition:transform var(--normal) var(--ease), border-color var(--rapido), box-shadow var(--normal) var(--ease); }
+  .opcao:nth-child(2) { margin-left:clamp(0px,4vw,56px); } /* ritmo: escalonado, sem cara de grade uniforme */
+  .opcao:nth-child(3) { margin-left:clamp(0px,8vw,112px); }
+  .opcao:hover { transform:translateY(-3px); border-color:#4a4f5a; }
+  .opcao:focus-within { outline:3px solid var(--foco); outline-offset:3px; }
+  .opcao input { position:absolute; inset:0; width:100%; height:100%; margin:0; opacity:0; cursor:pointer; z-index:2; } /* o rádio cobre o cartão inteiro: clicar em qualquer ponto escolhe */
+  .opcao.escolhida { border-color:var(--ouro); box-shadow:0 0 0 1px var(--ouro), 0 24px 60px -20px rgba(217,180,90,.45); background:linear-gradient(160deg,#211d12,var(--painel)); }
+  .opcao .tampa { position:relative; aspect-ratio:1; width:100%; }
+  .opcao .tampa img { width:100%; height:100%; border-radius:50%; filter:drop-shadow(0 16px 22px rgba(0,0,0,.65)); transition:transform var(--normal) var(--ease); }
+  .opcao:hover .tampa img, .opcao.escolhida .tampa img { transform:scale(1.04) rotate(4deg); }
+  .letra { position:absolute; top:-6px; left:-6px; width:44px; height:44px; border-radius:50%; display:grid; place-items:center; font:700 20px var(--serif); background:var(--painel); border:1px solid var(--ouro); color:var(--ouro-claro); }
+  .opcao.escolhida .letra { background:var(--metal); color:#1a1405; }
+  .opcao .tarja { aspect-ratio:3200/286; width:100%; border-radius:3px; overflow:hidden; box-shadow:0 0 0 1px rgba(217,180,90,.3), 0 10px 24px -8px rgba(0,0,0,.8); }
+  .opcao .tarja img { width:100%; height:100%; object-fit:cover; }
+  .rotulos { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-top:14px; font-size:13px; color:var(--suave); }
+  .pick { margin-top:16px; display:inline-flex; align-items:center; gap:10px; min-height:44px; font-weight:700; color:var(--ouro-claro); }
+  .pick::before { content:""; width:22px; height:22px; border-radius:50%; border:2px solid var(--ouro-escuro); transition:all var(--rapido); }
+  .opcao.escolhida .pick::before { background:radial-gradient(circle,#1a1405 0 30%,transparent 32%), var(--metal); border-color:var(--ouro); }
+  .opcao.escolhida .pick::after { content:"· escolhida"; color:var(--ouro); }
+  .aviso-guardadas { margin-top:28px; color:var(--suave); font-size:15px; border-left:2px solid var(--ouro-escuro); padding-left:16px; max-width:64ch; }
+
+  /* ===== Etapa 3: simulador ===== */
+  #etapa-3 { background:radial-gradient(50% 60% at 50% 50%, rgba(47,143,131,.14), transparent 70%), var(--fundo); text-align:center; }
+  #etapa-3 .cabeca { margin-inline:auto; justify-items:center; }
+  .vitrine { position:relative; width:min(60vw,260px); aspect-ratio:1; margin:0 auto 36px; }
+  .vitrine img { width:100%; height:100%; border-radius:50%; filter:drop-shadow(0 24px 30px rgba(0,0,0,.7)); }
+  .vitrine .anel { position:absolute; inset:-9%; border-radius:50%; border:1px solid rgba(217,180,90,.5); border-top-color:transparent; border-bottom-color:transparent; }
+  .vitrine.vazia img { opacity:.25; filter:grayscale(1); }
+  .nota { margin-top:16px; font-size:14px; color:var(--suave); min-height:1.6em; }
+  @media (prefers-reduced-motion:no-preference) { .vitrine:not(.vazia) .anel { animation:gira 3s linear 3; } }
+  @keyframes gira { to { transform:rotate(360deg); } }
+
+  /* ===== Etapa 4: arquivo ===== */
+  #etapa-4 { background:linear-gradient(180deg,var(--fundo),var(--fundo-2)); }
+  .itens { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr)); gap:clamp(16px,2vw,28px); }
+  .item { padding:26px; border:1px solid var(--linha); border-radius:18px; background:var(--painel); display:grid; gap:10px; align-content:start; }
+  .item:first-child { grid-column:1/-1; background:linear-gradient(135deg,#1d1a10,var(--painel)); border-color:var(--ouro-escuro); }
+  .item h3 { font-size:21px; color:var(--ouro-claro); }
+  .item p { color:var(--suave); font-size:15px; max-width:70ch; }
+  .item .medida { font:600 14px var(--sans); color:var(--texto); }
+
+  /* ===== Rodapé ===== */
+  footer { border-top:1px solid var(--linha); padding:36px var(--gutter) calc(36px + env(safe-area-inset-bottom, 0px)); text-align:center; color:var(--suave); font-size:14px; }
+  footer strong { font:600 18px var(--serif); color:var(--ouro); display:block; margin-bottom:6px; }
+
+  /* ===== Overlay do simulador ===== */
+  #sim { position:fixed; inset:0; z-index:50; background:#1d1714; }
+  #sim[hidden] { display:none; }
+  #sim iframe { width:100%; height:100%; border:0; }
+  #voltar { position:absolute; top:max(12px,env(safe-area-inset-top)); left:12px; min-height:48px; padding:0 20px; background:rgba(20,22,26,.92); color:var(--texto); border:1px solid var(--ouro); border-radius:999px; font:700 15px var(--sans); cursor:pointer; }
+  #voltar:hover { background:#000; }
+  @media (prefers-reduced-motion:no-preference) { #sim:not([hidden]) { animation:abre var(--normal) var(--ease); } }
+  @keyframes abre { from{opacity:0; transform:scale(.985);} to{opacity:1; transform:none;} }
+
+  /* ===== Responsivo ===== */
+  @media (max-width:1000px) {
+    .etapa-atual { display:inline; margin-left:auto; }
+    .nav-passos { margin-left:0; }
+    .passos a { position:relative; padding:0 8px; }
+    .passos .rot-p { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; } /* some da vista, continua no leitor de tela */
+  }
+  @media (max-width:480px) {
+    :root { --topo:96px; }
+    .topo-in { flex-wrap:wrap; align-content:center; height:var(--topo); }
+    .nav-passos { order:3; flex:1 0 100%; }
+    .passos { justify-content:space-between; }
+  }
+  @media (max-height:520px) { .topo { position:absolute; } } /* tela baixa: o cabeçalho rola junto e não rouba espaço */
+  @media (max-width:900px) {
+    .hero, .duas { grid-template-columns:minmax(0,1fr); }
+    .palco { order:-1; } /* o rótulo nascendo aparece antes do texto no celular */
+    .lado-info { position:static; }
+    .opcao:nth-child(n) { margin-left:0; }
+  }
+  @media (max-width:700px) {
+    .opcao { grid-template-columns:1fr; justify-items:center; }
+    .opcao .tampa { width:min(62vw,240px); } .opcao .corpo { width:100%; }
+  }
+  @media (max-width:380px) { .arquivos { grid-template-columns:1fr; } .soltar { aspect-ratio:auto; min-height:140px; } .topo-in { gap:8px; } }
+</style>
+</head>
+<body>
+<a class="so-leitor pular" href="#conteudo">Pular para o conteúdo</a>
+
+<header class="topo">
+  <div class="topo-in">
+    <a class="marca" href="#inicio" aria-label="Aço &amp; Cedro, início"><b>AÇO</b>&nbsp;&amp;&nbsp;CEDRO</a>
+    <span class="etapa-atual" id="etapa-atual" aria-hidden="true">Etapa 1 de 4</span>
+    <nav aria-label="Etapas do gerador" class="nav-passos">
+      <ol class="passos" id="passos">
+        <li><a href="#etapa-1"><span class="n"><span>1</span></span><span class="rot-p">Referência e logotipo</span><span class="so-leitor st"></span></a></li>
+        <li><a href="#etapa-2"><span class="n"><span>2</span></span><span class="rot-p">Escolher opção</span><span class="so-leitor st"></span></a></li>
+        <li><a href="#etapa-3"><span class="n"><span>3</span></span><span class="rot-p">Simulador 3D</span><span class="so-leitor st"></span></a></li>
+        <li><a href="#etapa-4"><span class="n"><span>4</span></span><span class="rot-p">Arquivo para impressão</span><span class="so-leitor st"></span></a></li>
+      </ol>
+    </nav>
+  </div>
+  <div class="barra" aria-hidden="true"><i id="progresso"></i></div>
+</header>
+
+<main id="conteudo" tabindex="-1">
+  <!-- ===== HERO ===== -->
+  <section id="inicio" aria-labelledby="h-hero">
+    <div class="hero">
+      <div class="hero-texto">
+        <p class="olho">Gerador de rótulos · pomada, cera e gel</p>
+        <h1 id="h-hero">Seu rótulo <span class="ouro">nasce aqui</span>, do logotipo ao pote girando.</h1>
+        <p class="sub">Você envia uma referência e o logotipo da marca. Devolvemos 3 opções de tarja e tampa. Você escolhe, confere em 3D e só então baixa o arquivo de impressão.</p>
+        <div class="acoes">
+          <a class="btn btn-ouro" href="#etapa-1">Começar meu rótulo</a>
+          <a class="txt" href="#etapa-2">Ver exemplo de resultado</a>
+        </div>
+        <ul class="fatos">
+          <li><strong>3 opções</strong><span>sempre, para você comparar</span></li>
+          <li><strong>190 × 17 mm</strong><span>tarja em faixa longa</span></li>
+          <li><strong>Ø 89,1 mm</strong><span>tampa circular</span></li>
+          <li><strong>Só no 3D</strong><span>o download vem depois de ver o pote</span></li>
+        </ul>
+      </div>
+      <!-- TODO: trocar a demonstração (Rota do Caribe) por uma arte aprovada para apresentação ou por um carrossel de marcas-exemplo -->
+      <div class="palco">
+        <div class="tampa-hero" aria-hidden="true">
+          <svg viewBox="0 0 100 100" focusable="false"><defs><linearGradient id="ouroG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8a6b24"/><stop offset=".5" stop-color="#f1d68f"/><stop offset="1" stop-color="#a37f2c"/></linearGradient></defs><circle cx="50" cy="50" r="49" pathLength="1"/></svg>
+          <img src="opcao-a-tampa.webp" alt="" width="1400" height="1400" fetchpriority="high">
+        </div>
+        <div class="tarja-hero" aria-hidden="true"><img src="opcao-a-tarja.webp" alt="" width="3200" height="286"></div>
+        <p class="legenda-palco">Exemplo de demonstração. Dados do produto provisórios.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ETAPA 1 ===== -->
+  <section id="etapa-1" aria-labelledby="h1">
+    <div class="miolo">
+      <div class="cabeca rev">
+        <span class="num-grande" aria-hidden="true">01</span>
+        <p class="olho">Etapa 1 de 4</p>
+        <h2 id="h1">Referência e logotipo</h2>
+        <p>Conte qual é a marca e o produto, e mostre o clima que você quer. Pode ser uma foto, uma arte ou um modelo feito no ChatGPT.</p>
+      </div>
+      <div class="duas">
+        <form id="f" novalidate class="rev">
+          <p class="dica"><span class="obrig" aria-hidden="true">*</span> Todos os campos são obrigatórios.</p>
+          <div class="campo">
+            <label for="marca">Nome da marca<span class="obrig" aria-hidden="true">*</span></label>
+            <input type="text" id="marca" name="marca" maxlength="60" autocomplete="off" aria-required="true" aria-describedby="e-marca">
+            <span class="erro-campo" id="e-marca" role="alert"></span>
+          </div>
+          <div class="campo">
+            <label for="produto">Tipo de produto</label>
+            <select id="produto" name="produto">
+              <option value="pomada">Pomada modeladora</option>
+              <option value="cera">Cera modeladora</option>
+              <option value="gel">Gel modelador</option>
+            </select>
+          </div>
+          <div class="arquivos">
+            <div class="campo">
+              <span class="rot" id="r-ref">Imagem de referência<span class="obrig" aria-hidden="true">*</span></span>
+              <label class="soltar" id="s-referencia">
+                <span class="so-leitor">Escolher imagem de referência</span>
+                <input type="file" name="referencia" accept="image/png,image/jpeg,image/webp" aria-labelledby="r-ref" aria-required="true" aria-describedby="e-referencia">
+                <span class="txt">Clique ou toque para enviar<small>PNG, JPG ou WebP</small></span>
+                <img alt="Pré-visualização da referência" hidden>
+                <span class="trocar" hidden>Trocar imagem</span>
+              </label>
+              <span class="erro-campo" id="e-referencia" role="alert"></span>
+            </div>
+            <div class="campo">
+              <span class="rot" id="r-logo">Logotipo da marca<span class="obrig" aria-hidden="true">*</span></span>
+              <label class="soltar logo" id="s-logo">
+                <span class="so-leitor">Escolher logotipo</span>
+                <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" aria-labelledby="r-logo" aria-required="true" aria-describedby="e-logo">
+                <span class="txt">Clique ou toque para enviar<small>PNG com fundo transparente é o ideal</small></span>
+                <img alt="Pré-visualização do logotipo" hidden>
+                <span class="trocar" hidden>Trocar imagem</span>
+              </label>
+              <span class="erro-campo" id="e-logo" role="alert"></span>
+            </div>
+          </div>
+          <div>
+            <button class="btn btn-ouro" id="enviar" type="submit">Enviar e gerar 3 opções</button>
+          </div>
+          <p class="estado" id="msg" role="status" aria-live="polite"></p>
+        </form>
+        <aside class="lado-info rev" aria-label="O que acontece depois">
+          <h3>O que acontece depois</h3>
+          <ol>
+            <li><span><b>Recebemos seu pedido</b>Você ganha um código para acompanhar.</span></li>
+            <li><span><b>Criamos 3 opções</b>Cada uma com tarja e tampa no tamanho real de impressão.</span></li>
+            <li><span><b>Você escolhe uma</b>As outras duas ficam guardadas no seu painel.</span></li>
+          </ol>
+          <!-- TODO: prazo real de entrega das 3 opções (depende do backend/fila de geração); não prometer tempo até definir -->
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ETAPA 2 ===== -->
+  <section id="etapa-2" aria-labelledby="h2">
+    <div class="miolo">
+      <div class="cabeca rev">
+        <span class="num-grande" aria-hidden="true">02</span>
+        <p class="olho">Etapa 2 de 4</p>
+        <h2 id="h2" tabindex="-1">Escolha a sua opção</h2>
+        <p>Sempre 3 caminhos. Compare a tampa e a tarja lado a lado e marque a que mais combina com a marca.</p>
+        <!-- TODO: trocar as imagens de demonstração pelas 3 opções reais do pedido (GET /pedido/:id) e mostrar o estado "gerando…" -->
+        <span class="selo-demo" id="selo">Exemplo de demonstração · Aço &amp; Cedro</span>
+      </div>
+      <form onsubmit="return false">
+        <fieldset class="opcoes rev" id="opcoes">
+          <legend class="so-leitor">Opções de tarja e tampa</legend>
+          <div class="opcao" data-opcao="a">
+            <input type="radio" name="opcao" value="a" aria-labelledby="nome-a">
+            <span class="so-leitor" id="nome-a">Opção A</span>
+            <div class="tampa"><span class="letra" aria-hidden="true">A</span><img src="opcao-a-tampa.webp" alt="Tampa da opção A, com relevo de bronze" width="1400" height="1400" loading="lazy"></div>
+            <div class="corpo">
+              <div class="tarja"><img src="opcao-a-tarja.webp" alt="Tarja da opção A, faixa longa com logotipo e texto legal" width="3200" height="286" loading="lazy"></div>
+              <div class="rotulos"><span>Tarja 190 × 17 mm</span><span>Tampa Ø 89,1 mm</span></div>
+              <span class="pick"><span>Escolher esta opção</span></span>
+            </div>
+          </div>
+          <div class="opcao" data-opcao="b">
+            <input type="radio" name="opcao" value="b" aria-labelledby="nome-b">
+            <span class="so-leitor" id="nome-b">Opção B</span>
+            <div class="tampa"><span class="letra" aria-hidden="true">B</span><img src="opcao-b-tampa.webp" alt="Tampa da opção B, com esmalte colorido" width="1400" height="1400" loading="lazy"></div>
+            <div class="corpo">
+              <div class="tarja"><img src="opcao-b-tarja.webp" alt="Tarja da opção B, faixa longa com logotipo e texto legal" width="3200" height="286" loading="lazy"></div>
+              <div class="rotulos"><span>Tarja 190 × 17 mm</span><span>Tampa Ø 89,1 mm</span></div>
+              <span class="pick"><span>Escolher esta opção</span></span>
+            </div>
+          </div>
+          <div class="opcao" data-opcao="c">
+            <input type="radio" name="opcao" value="c" aria-labelledby="nome-c">
+            <span class="so-leitor" id="nome-c">Opção C</span>
+            <div class="tampa"><span class="letra" aria-hidden="true">C</span><img src="opcao-c-tampa.webp" alt="Tampa da opção C, com silhueta dourada" width="1400" height="1400" loading="lazy"></div>
+            <div class="corpo">
+              <div class="tarja"><img src="opcao-c-tarja.webp" alt="Tarja da opção C, faixa longa com logotipo e texto legal" width="3200" height="286" loading="lazy"></div>
+              <div class="rotulos"><span>Tarja 190 × 17 mm</span><span>Tampa Ø 89,1 mm</span></div>
+              <span class="pick"><span>Escolher esta opção</span></span>
+            </div>
+          </div>
+        </fieldset>
+      </form>
+      <p class="aviso-guardadas rev" id="estado" role="status" aria-live="polite">Marque uma opção para continuar. As outras duas ficam guardadas no seu painel.</p>
+      <p class="rev" style="margin-top:24px"><a class="btn btn-linha" href="#etapa-3">Seguir para o simulador 3D</a></p>
+      <!-- Regra do Rafael: nenhum botão de download nesta etapa. O arquivo só sai dentro do simulador 3D. -->
+    </div>
+  </section>
+
+  <!-- ===== ETAPA 3 ===== -->
+  <section id="etapa-3" aria-labelledby="h3">
+    <div class="miolo">
+      <div class="cabeca rev">
+        <span class="num-grande" aria-hidden="true">03</span>
+        <p class="olho">Etapa 3 de 4</p>
+        <h2 id="h3">Veja o pote girando</h2>
+        <p>Aprovando a opção, o simulador 3D abre aqui mesmo. Você confere a tampa e a tarja no pote antes de qualquer arquivo.</p>
+      </div>
+      <div class="rev">
+        <div class="vitrine vazia" id="vitrine"><span class="anel" aria-hidden="true"></span><img id="vitrine-img" src="opcao-a-tampa.webp" alt="" width="1400" height="1400" loading="lazy"></div>
+        <button class="btn btn-ouro" id="ir3d" type="button" aria-disabled="true" aria-haspopup="dialog" aria-describedby="nota3d">Aprovar e abrir no simulador 3D</button>
+        <p class="nota" id="nota3d">Escolha uma opção na etapa 2 para liberar o simulador.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ETAPA 4 ===== -->
+  <section id="etapa-4" aria-labelledby="h4">
+    <div class="miolo">
+      <div class="cabeca rev">
+        <span class="num-grande" aria-hidden="true">04</span>
+        <p class="olho">Etapa 4 de 4</p>
+        <h2 id="h4">Arquivo para impressão</h2>
+        <p>Esta página não tem download. Quando você abre o simulador 3D, o botão para baixar o arquivo de impressão está lá dentro.</p>
+      </div>
+      <div class="itens rev">
+        <div class="item">
+          <h3>O download fica dentro do simulador</h3>
+          <p>Primeiro você vê o pote girando. Se estiver tudo certo, baixa o arquivo ali mesmo, sem sair do endereço e sem redirecionamento.</p>
+          <!-- TODO: confirmar o formato exato do arquivo (PDF) e o nome do botão no simulador antes de citar na apresentação -->
+        </div>
+        <div class="item"><h3>Tarja</h3><span class="medida">190 × 17 mm</span><p>Faixa longa que envolve o pote.</p></div>
+        <div class="item"><h3>Tampa</h3><span class="medida">Ø 89,1 mm</span><p>Círculo de corte no tamanho da tampa.</p></div>
+        <div class="item"><h3>Revisão final</h3><span class="medida">Antes de imprimir</span><p>Confira o texto legal do produto (fabricante, registro e composição) com o responsável técnico da marca. <!-- TODO: texto de aviso legal definitivo --></p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <strong>by UP — Co.</strong>
+  <p>O sócio que faltava.</p>
+</footer>
+
+<div id="sim" hidden role="dialog" aria-modal="true" aria-label="Simulador 3D">
+  <iframe id="simFrame" title="Simulador 3D"></iframe>
+  <button id="voltar" type="button"><span aria-hidden="true">&larr;</span> Fechar simulador</button>
+</div>
+
+<script>
+  document.documentElement.classList.add('js');
+  const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const chave = 'painel-demo-escolha', MAX_MB = 8; // TODO: conferir o limite real do POST /pedido (arquivo vai em base64 dentro do JSON)
+  const lerSalvo = () => { try { return localStorage.getItem(chave); } catch { return null; } };
+  const gravar = (v) => { try { localStorage.setItem(chave, v); } catch { /* sem armazenamento: vale só nesta visita */ } };
+  const reduz = () => matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  /* ---- Stepper: etapa atual pela rolagem + barra de progresso ---- */
+  const links = $$('#passos a'), secoes = links.map((a) => $(a.hash));
+  const marcarAtual = (i) => {
+    links.forEach((a, k) => (k === i ? a.setAttribute('aria-current', 'step') : a.removeAttribute('aria-current')));
+    $('#etapa-atual').textContent = `Etapa ${i + 1} de ${links.length}`;
+    $('#progresso').style.transform = `scaleX(${(i + 1) / links.length})`;
+  };
+  const io = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) marcarAtual(secoes.indexOf(e.target)); }), { rootMargin: '-45% 0px -50% 0px' });
+  secoes.forEach((s) => io.observe(s));
+  const feito = (i, on = true) => { links[i].classList.toggle('feito', on); $('.st', links[i]).textContent = on ? ' (concluída)' : ''; };
+
+  /* ---- Entrada suave das seções ---- */
+  const rv = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('vis'); rv.unobserve(e.target); } }), { threshold: .12 });
+  $$('.rev').forEach((el) => rv.observe(el));
+
+  /* ---- Etapa 1: pré-visualização, validação, envio ---- */
+  const f = $('#f'), msg = $('#msg'), btn = $('#enviar');
+  const NOMES = { marca: 'nome da marca', referencia: 'imagem de referência', logo: 'logotipo' };
+  const ler = (arq) => new Promise((ok, erro) => { const r = new FileReader(); r.onload = () => ok(r.result); r.onerror = erro; r.readAsDataURL(arq); });
+  const erroCampo = (id, texto) => {
+    $('#e-' + id).textContent = texto;
+    f.elements[id].setAttribute('aria-invalid', texto ? 'true' : 'false'); // no input, não no rótulo
+    $('#s-' + id)?.classList.toggle('invalido', !!texto);
+  };
+  function validarArquivo(nome) {
+    const arq = f.elements[nome].files[0];
+    if (!arq) return 'Escolha uma imagem.';
+    if (!/^image\/(png|jpeg|webp)$/.test(arq.type)) return 'Use PNG, JPG ou WebP.';
+    if (arq.size > MAX_MB * 1048576) return `Imagem acima de ${MAX_MB} MB. Envie uma menor.`;
+    return '';
+  }
+  ['referencia', 'logo'].forEach((nome) => {
+    const caixa = $('#s-' + nome), img = $('img', caixa), troca = $('.trocar', caixa);
+    f.elements[nome].addEventListener('change', () => {
+      const arq = f.elements[nome].files[0], e = arq ? validarArquivo(nome) : '';
+      erroCampo(nome, e);
+      if (img.src.startsWith('blob:')) URL.revokeObjectURL(img.src);
+      const ok = arq && !e;
+      img.hidden = troca.hidden = !ok;
+      if (ok) {
+        img.src = URL.createObjectURL(arq);
+        msg.className = 'estado'; msg.textContent = `${nome === 'logo' ? 'Logotipo' : 'Imagem de referência'} escolhido: ${arq.name}.`;
+      }
+    });
+  });
+  f.addEventListener('submit', async (ev) => {
+    ev.preventDefault();
+    if (btn.getAttribute('aria-busy') === 'true') return; // envio em andamento: ignora o clique, o foco fica no botão
+    const marca = f.elements.marca.value.trim();
+    const e = { marca: marca ? '' : 'Informe o nome da marca.', referencia: validarArquivo('referencia'), logo: validarArquivo('logo') };
+    Object.entries(e).forEach(([k, v]) => erroCampo(k, v));
+    const faltam = Object.keys(e).filter((k) => e[k]).map((k) => NOMES[k]);
+    if (faltam.length) {
+      msg.className = 'estado erro'; msg.textContent = `Revise: ${faltam.join(', ')}.`;
+      f.querySelector('[aria-invalid="true"]').focus();
+      return;
+    }
+    btn.setAttribute('aria-busy', 'true'); btn.setAttribute('aria-disabled', 'true'); msg.className = 'estado'; msg.textContent = 'Enviando…';
+    try {
+      const corpo = { marca, produto: f.elements.produto.value, referencia: await ler(f.elements.referencia.files[0]), logo: await ler(f.elements.logo.files[0]) };
+      const r = await fetch('/api/pedidos', { method: 'POST', body: JSON.stringify(corpo) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error('falha no envio');
+      msg.className = 'estado ok'; msg.textContent = `Pedido recebido${j.id ? ` (código ${j.id})` : ''}. As 3 opções estão sendo geradas.`;
+      feito(0); aguardar(j.id);
+      setTimeout(() => { const h = $('#h2'); h.scrollIntoView({ behavior: reduz() ? 'auto' : 'smooth' }); h.focus({ preventScroll: true }); }, 900);
+    } catch { msg.className = 'estado erro'; msg.textContent = 'Não consegui enviar agora. Tente de novo.'; }
+    btn.removeAttribute('aria-busy'); btn.removeAttribute('aria-disabled');
+  });
+
+  /* ---- Resultado: consulta o pedido até ficar pronto e troca as imagens de exemplo pelas reais ---- */
+  function aguardar(id) {
+    const selo = $('#selo'); selo.textContent = 'Gerando as 3 opções do seu pedido…';
+    const t = setInterval(async () => {
+      let s; try { s = await (await fetch('/api/pedidos/' + id)).json(); } catch { return; }
+      if (s.estado === 'erro') { clearInterval(t); selo.textContent = 'Não consegui gerar este pedido. Tente de novo.'; }
+      if (s.estado !== 'pronto') { if (s.estado === 'gerando') selo.textContent = 'Gerando as 3 opções… quase lá.'; return; }
+      clearInterval(t);
+      $('img[src^="opcao-"]').forEach((im) => { im.src = im.getAttribute('src').split('?')[0] + '?v=' + Date.now(); });
+      selo.textContent = 'Pronto: estas são as 3 opções do seu pedido.';
+      const h = $('#h2'); h.scrollIntoView({ behavior: reduz() ? 'auto' : 'smooth' }); h.focus({ preventScroll: true });
+    }, 3000);
+  }
+
+  /* ---- Etapa 2: escolher (sem download aqui) ---- */
+  const estado = $('#estado'), ir3d = $('#ir3d'), vitrine = $('#vitrine');
+  function marcar(op) {
+    $$('.opcao').forEach((a) => {
+      const sel = a.dataset.opcao === op;
+      a.classList.toggle('escolhida', sel);
+      $('input', a).checked = sel;
+    });
+    if (op) ir3d.removeAttribute('aria-disabled'); else ir3d.setAttribute('aria-disabled', 'true');
+    vitrine.classList.toggle('vazia', !op); feito(1, !!op);
+    if (op) {
+      $('#vitrine-img').src = `opcao-${op}-tampa.webp`;
+      estado.textContent = `Opção ${op.toUpperCase()} escolhida. As outras duas ficam guardadas no seu painel.`;
+      $('#nota3d').textContent = `Opção ${op.toUpperCase()} pronta para o simulador.`;
+    }
+  }
+  $$('.opcao input').forEach((i) => i.addEventListener('change', () => { gravar(i.value); marcar(i.value); }));
+  marcar(['a', 'b', 'c'].includes(lerSalvo()) ? lerSalvo() : null);
+
+  /* ---- Etapa 3: overlay do simulador ---- */
+  const sim = $('#sim'), frame = $('#simFrame'), voltar = $('#voltar');
+  let fundo = [];
+  const teclaEsc = (e) => { if (e.key === 'Escape' && !sim.hidden) fecha(); };
+  function fecha() {
+    frame.onload = null; sim.hidden = true; frame.src = 'about:blank';
+    fundo.forEach((el) => { el.inert = false; }); document.body.style.overflow = '';
+    ir3d.focus(); // devolve o foco a quem abriu
+  }
+  ir3d.addEventListener('click', () => {
+    if (ir3d.getAttribute('aria-disabled') === 'true') { $('#nota3d').textContent = 'Escolha uma opção na etapa 2 para liberar o simulador.'; return; }
+    const idx = 'abc'.indexOf(lerSalvo());
+    if (idx < 0) return;
+    frame.onload = () => { // o simulador abre no 1º kit; espera a biblioteca carregar e clica no escolhido (mesma origem)
+      try { frame.contentDocument.addEventListener('keydown', teclaEsc); } catch { /* sem acesso: Esc só funciona fora do frame */ }
+      let n = 0;
+      const t = setInterval(() => {
+        try { const fig = frame.contentDocument.querySelectorAll('#lib figure')[idx]; if (fig) { fig.click(); clearInterval(t); } } catch { clearInterval(t); }
+        if (++n > 60) clearInterval(t);
+      }, 250);
+    };
+    // TODO: usar a marca do pedido real; por ora, a marca digitada ou a de demonstração
+    frame.src = 'simulador/index.html?marca=' + encodeURIComponent(f.elements.marca.value.trim() || 'Aço & Cedro');
+    fundo = $$('body > :not(#sim):not(script)'); fundo.forEach((el) => { el.inert = true; }); // foco e leitor de tela ficam presos no overlay
+    sim.hidden = false; document.body.style.overflow = 'hidden'; voltar.focus(); feito(2);
+  });
+  voltar.addEventListener('click', fecha);
+  document.addEventListener('keydown', teclaEsc);
+</script>
+</body>
+</html>
